@@ -1,6 +1,7 @@
 package zerr
 
 import (
+	"errors"
 	"go.uber.org/zap"
 )
 
@@ -18,14 +19,28 @@ func (e *Error) Error() string {
 
 // Fields returns all fields attached to this error, and all fields attached to previous errors
 func (e *Error) Fields() []zap.Field {
-	if cause, ok := e.err.(*Error); ok {
-		// Include fields from causing errors, if any
-		return append(cause.Fields(), e.fields...)
+	var ok bool
+	fields := e.fields
+
+	err := e
+	for {
+		err, ok = err.err.(*Error)
+		if !ok {
+			break
+		}
+		fields = append(fields, err.fields...)
 	}
-	return e.fields
+	return fields
+}
+
+// Unwrap returns the cause of this error
+func (e *Error) Unwrap() error {
+	return e.err
 }
 
 // Cause returns the cause of this error
+// Note that Unwrap should be used, this is included for
+// compatibility with pkg/errors
 func (e *Error) Cause() error {
 	return e.err
 }
@@ -42,7 +57,8 @@ func Wrap(err error, fields ...zap.Field) error {
 func WrapStack(err error, fields ...zap.Field) error {
 	// Check if we've already wrapped with a stack.
 	// If that's the case, we won't add another stacktrace
-	if e, ok := err.(*Error); ok {
+	var e *Error
+	if errors.As(err, &e) {
 		if e.hasStack {
 			return Wrap(err, fields...)
 		}
@@ -51,7 +67,7 @@ func WrapStack(err error, fields ...zap.Field) error {
 	fields = append(fields, zap.Stack("stacktrace"))
 
 	// Tag that this error has a stacktrace
-	e := Wrap(err, fields...).(*Error)
+	e = Wrap(err, fields...).(*Error)
 	e.hasStack = true
 	return e
 }

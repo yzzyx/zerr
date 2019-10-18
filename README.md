@@ -43,6 +43,35 @@ with a field created with `zap.Stack()`
 
 Errors can be wrapped multiple times. All added fields, regardless of level, will be extracted.
 
+Using with zap
+--------------
+
+Using zerr allows capturing errors with additional context information deep down in the call stack,
+and the returning this error back up to a level were logging can take place,
+while still having access to the context and stacktrace to where the error actually occurred.
+
+```go
+
+func broken(fname string) error {
+    _, err := os.Open(fname)
+    if err != nil {
+        return zerr.Wrap(err, zap.String("filename", fname))
+    }
+    // do something else
+    return nil
+}   
+
+func main() {
+    
+    logger := zap.NewDevelopment()
+    
+    err = broken("/this-file-does-not-exist")
+    if err != nil {
+        logger.Error("error calling broken", zerr.Fields(err))
+    }
+}
+```
+
 
 Reading errors
 --------------
@@ -56,14 +85,5 @@ if err != nil {
 }
 ```
 
-To get the original error (for type-comparisons, etc.), use the function `zerr.Cause`
-```go
-switch err := zerr.Cause(err).(type) {
-case *MyError:
-        // handle specifically
-default:
-        // unknown error
-}
-```
 
-This usage is also compatible with the package [pkg/errors](https://github.com/pkg/errors).
+
