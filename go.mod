@@ -1,4 +1,4 @@
-module gitlab.com/yzzyx/zerr
+module github.com/yzzyx/zerr
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
