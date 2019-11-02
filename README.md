@@ -28,20 +28,38 @@ You can add any number of fields the the error:
 err = zerr.Wrap(err, zap.Int("int-field", 15), zap.String("query", query), zap.Any("obj", obj))
 ```
 
-A shorthand is available for including a stacktrace:
-```go
-// Add stacktrace to error
-err = zerr.WrapStack(err)
+By default, a stacktrace is added when an error is wrapped.
+To avoid this behaviour call `zerr.WrapNoStack()` instead. This allows for a specific error to be wrapped without a stacktrace, regardless of the
+  setting *DefaultAddStacktrace*.
 
-// WrapStack can also take extra fields, just like Wrap()
-err = zerr.WrapStack(err, zap.Int("int-field", 15))
+```go
+// Do not include a stacktrace
+err = zerr.WrapNoStack(err)
+
+// WrapNoStack can also take extra fields, just like Wrap()
+err = zerr.WrapNoStack(err, zap.Int("int-field", 15), zap.String("query", query))
 ```
 
-Note that `WrapStack` will not add additional stacktraces if one was already included in the error.
+Note that `Wrap` will not add additional stacktraces if one was already included in the error.
 If additional stacktraces should be included, it must be specified explicitly, by calling `zerr.Wrap`
 with a field created with `zap.Stack()`
 
 Errors can be wrapped multiple times. All added fields, regardless of level, will be extracted.
+
+Sugared wrapping
+----------------
+
+For ease of use, sugared versions are availble of the Wrap()-functions, which expects an error followed by a list
+of alternating string keynames and values to be passed as arguments.
+
+```go
+err := zerr.Sugar(err, "fieldname1", intvalue1, "fieldname2", stringvalue2)
+
+// which is equal to:
+err = zerr.Wrap(err, zap.Int("fieldname1", intvalue1), zap.String("fieldname2", stringvalue2))
+```
+
+A corresponding function `zerr.SugarNoStack` is available to wrap an error without a stack trace
 
 Using with zap
 --------------
@@ -67,7 +85,7 @@ func main() {
     
     err = broken("/this-file-does-not-exist")
     if err != nil {
-        logger.Error("error calling broken", zerr.Fields(err))
+        logger.Error("error calling broken", zerr.Fields(err)...)
     }
 }
 ```
@@ -84,6 +102,3 @@ if err != nil {
     zap.Error("something went wrong", zerr.Fields(err)...)
 }
 ```
-
-
-

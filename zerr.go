@@ -47,29 +47,29 @@ func (e *Error) Cause() error {
 
 // Wrap adds zap fields to an error
 func Wrap(err error, fields ...zap.Field) error {
-	return &Error{
-		err:    err,
-		fields: fields,
-	}
-}
-
-// WrapStack wraps error with fields and a stacktrace
-func WrapStack(err error, fields ...zap.Field) error {
 	// Check if we've already wrapped with a stack.
 	// If that's the case, we won't add another stacktrace
 	var e *Error
 	if errors.As(err, &e) {
-		if e.hasStack {
-			return Wrap(err, fields...)
+		if !e.hasStack {
+			fields = append(fields, zap.Stack("stacktrace"))
 		}
 	}
 
-	fields = append(fields, zap.Stack("stacktrace"))
+	return &Error{
+		err:      err,
+		fields:   fields,
+		hasStack: true,
+	}
+}
 
+// WrapNoStack wraps error with fields, but always excludes the stack trace
+func WrapNoStack(err error, fields ...zap.Field) error {
 	// Tag that this error has a stacktrace
-	e = Wrap(err, fields...).(*Error)
-	e.hasStack = true
-	return e
+	return &Error{
+		err:    err,
+		fields: fields,
+	}
 }
 
 // Sugar is a sugared version of the 'Wrap'  function above.
@@ -80,10 +80,10 @@ func Sugar(err error, args ...interface{}) error {
 	return Wrap(err, fields...)
 }
 
-// SugarStack is exactly like the 'Sugar' function with an additional stacktrace
-func SugarStack(err error, args ...interface{}) error {
+// SugarNoStack is exactly like the 'Sugar' function but without an additional stacktrace
+func SugarNoStack(err error, args ...interface{}) error {
 	fields := sugarFields(args...)
-	return WrapStack(err, fields...)
+	return WrapNoStack(err, fields...)
 }
 
 // Fields returns any/all fields that are attached to an error
