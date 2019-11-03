@@ -3,6 +3,7 @@ package zerr
 import (
 	"errors"
 	"go.uber.org/zap"
+	"net/http"
 )
 
 // Error is the type used to wrap other errors with additional fields
@@ -45,15 +46,80 @@ func (e *Error) Cause() error {
 	return e.err
 }
 
+// WithRequest adds information about a http request to the given error.
+// This is a convenience function that performs the same task as calling
+//  err.WithField(zerr.FieldRequest("request", r))
+// or
+//  WrapNoStack(err, zerr.FieldRequest("request", r))
+func (e *Error) WithRequest(r *http.Request) *Error {
+	return e.WithField(FieldRequest("request", r))
+}
+
+// WithField creates a new Error instance, with one or more fields added.
+// Note that this is equivalient to calling WrapNoStack(err, f)
+func (e *Error) WithField(f zap.Field, additionalFields ...zap.Field) *Error {
+	newErr := &Error{
+		err:      e,
+		fields:   append(additionalFields, f),
+		hasStack: e.hasStack,
+	}
+
+	return newErr
+}
+
+// LogDebug logs an Error with Debug level to a given zap logger
+func (e *Error) LogDebug(logger *zap.Logger) {
+	logger.Debug(e.Error(), e.fields...)
+}
+
+// LogInfo logs an Error with Info level to a given zap logger
+func (e *Error) LogInfo(logger *zap.Logger) {
+	logger.Info(e.Error(), e.fields...)
+}
+
+// LogWarn logs an Error with Warn level to a given zap logger
+func (e *Error) LogWarn(logger *zap.Logger) {
+	logger.Warn(e.Error(), e.fields...)
+}
+
+// LogError logs an Error with Error level to a given zap logger
+func (e *Error) LogError(logger *zap.Logger) {
+	logger.Error(e.Error(), e.fields...)
+}
+
+// LogDPanic logs an Error with DPanic level to a given zap logger
+func (e *Error) LogDPanic(logger *zap.Logger) {
+	logger.DPanic(e.Error(), e.fields...)
+}
+
+// LogPanic logs an Error with Panic level to a given zap logger
+func (e *Error) LogPanic(logger *zap.Logger) {
+	logger.Panic(e.Error(), e.fields...)
+}
+
+// LogFatal logs an Error with Fatal level to a given zap logger
+func (e *Error) LogFatal(logger *zap.Logger) {
+	logger.Fatal(e.Error(), e.fields...)
+}
+
 // Wrap adds zap fields to an error
-func Wrap(err error, fields ...zap.Field) error {
+func Wrap(err error, fields ...zap.Field) *Error {
+	// If we're not adding any fields, and the supplied error is already of the correct type,
+	// return it directly
+	if e, ok := err.(*Error); ok && len(fields) == 0 {
+		return e
+	}
+
 	// Check if we've already wrapped with a stack.
 	// If that's the case, we won't add another stacktrace
 	var e *Error
+	hasStack := false
 	if errors.As(err, &e) {
-		if !e.hasStack {
-			fields = append(fields, zap.Stack("stacktrace"))
-		}
+		hasStack = e.hasStack
+	}
+
+	if !hasStack {
+		fields = append(fields, zap.Stack("stacktrace"))
 	}
 
 	return &Error{
@@ -64,7 +130,7 @@ func Wrap(err error, fields ...zap.Field) error {
 }
 
 // WrapNoStack wraps error with fields, but always excludes the stack trace
-func WrapNoStack(err error, fields ...zap.Field) error {
+func WrapNoStack(err error, fields ...zap.Field) *Error {
 	// Tag that this error has a stacktrace
 	return &Error{
 		err:    err,
@@ -75,13 +141,13 @@ func WrapNoStack(err error, fields ...zap.Field) error {
 // Sugar is a sugared version of the 'Wrap'  function above.
 // It allows the user to add fields without using strongly typed fields, e.g.
 // errors.Wraps(err, "key-1", 12, "key-2", "some string", "key-3", value)
-func Sugar(err error, args ...interface{}) error {
+func Sugar(err error, args ...interface{}) *Error {
 	fields := sugarFields(args...)
 	return Wrap(err, fields...)
 }
 
 // SugarNoStack is exactly like the 'Sugar' function but without an additional stacktrace
-func SugarNoStack(err error, args ...interface{}) error {
+func SugarNoStack(err error, args ...interface{}) *Error {
 	fields := sugarFields(args...)
 	return WrapNoStack(err, fields...)
 }

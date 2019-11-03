@@ -8,12 +8,12 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestWrap(t *testing.T) {
+func TestWrapNoStack(t *testing.T) {
 	err := errors.New("test")
 
 	// When
 	// we wrap an error
-	err = Wrap(err, zap.Int("intfield", 1))
+	err = WrapNoStack(err, zap.Int("intfield", 1))
 
 	// Then
 	// it should be of our error type
@@ -27,7 +27,7 @@ func TestWrap(t *testing.T) {
 
 	// When
 	// We wrap the error again
-	err = Wrap(err, zap.String("stringfield", "abc"))
+	err = WrapNoStack(err, zap.String("stringfield", "abc"))
 
 	// Then
 	// Two fields should be returned (int and string)
@@ -35,12 +35,12 @@ func TestWrap(t *testing.T) {
 	require.Len(t, fields, 2)
 }
 
-func TestWrapStack(t *testing.T) {
+func TestWrap(t *testing.T) {
 	err := errors.New("test")
 
 	// When
 	// we wrap an error
-	err = WrapStack(err, zap.Int("intfield", 1))
+	err = Wrap(err, zap.Int("intfield", 1))
 
 	// Then
 	// it should be of our error type
@@ -57,7 +57,7 @@ func TestWrapStack(t *testing.T) {
 
 	// When
 	// we try to add another stack trace by wrapping the same error
-	err = WrapStack(err)
+	err = Wrap(err)
 
 	// Then
 	// the original stacktrace should still be retained
@@ -89,17 +89,12 @@ func TestCause(t *testing.T) {
 	require.Equal(t, e, originalError)
 }
 
-func TestSugar(t *testing.T) {
+func TestSugarNoStack(t *testing.T) {
 	originalError := errors.New("original error")
 
 	// When
-	// we wrap an error with Sugar() and non-strongly typed keys
-	err := Sugar(originalError, "intvalue", 1)
-
-	// Then
-	// returned error should be of type Error
-	_, ok := err.(*Error)
-	require.True(t, ok)
+	// we wrap an error with SugarNoStack() and non-strongly typed keys
+	err := SugarNoStack(originalError, "intvalue", 1)
 
 	// And
 	// one field should be available
@@ -111,7 +106,7 @@ func TestSugar(t *testing.T) {
 
 	// When
 	// we wrap an error with Sugar() using strongly typed keys
-	err = Sugar(originalError, zap.Int("intvalue", 1), zap.String("stringvalue", " abc"))
+	err = SugarNoStack(originalError, zap.Int("intvalue", 1), zap.String("stringvalue", " abc"))
 
 	// Then
 	// two field should be available
@@ -123,7 +118,7 @@ func TestSugar(t *testing.T) {
 
 	// When
 	// we wrap an error with Sugar() using a mix of strongly typed keys and non-types keys
-	err = Sugar(originalError, zap.Int("intvalue", 1), zap.String("stringvalue", " abc"), "value3", "test")
+	err = SugarNoStack(originalError, zap.Int("intvalue", 1), zap.String("stringvalue", " abc"), "value3", "test")
 
 	// Then
 	// three field should be available
@@ -135,10 +130,65 @@ func TestSugar(t *testing.T) {
 
 	// When
 	// we wrap an error with a dangling key, it should be added as an "any"-field
-	err = Sugar(originalError, "dangling key")
+	err = SugarNoStack(originalError, "dangling key")
 
 	// Then
 	// we should have one field (with key "dangling-key")
 	fields = Fields(err)
 	require.Len(t, fields, 1)
+}
+
+func TestAddFields(t *testing.T) {
+	// When
+	// we start with a plain error
+	originalError := errors.New("original error")
+
+	// Then
+	// we get a wrapper error in return
+	e := Wrap(originalError)
+	require.NotNil(t, e)
+	require.IsType(t, &Error{}, e)
+
+	// When
+	// we add fields to the error
+	e2 := e.WithField(zap.Int("test", 1))
+
+	// Then
+	// A new instance is returned
+	require.NotNil(t, e)
+	require.IsType(t, &Error{}, e2)
+	require.NotEqual(t, e, e2)
+	require.Equal(t, e2.err, e)
+
+	// When
+	// logging errors in level Debug - Error
+	// Then
+	// no panics occur
+	logger := zap.NewNop()
+	e2.LogDebug(logger)
+	e2.LogInfo(logger)
+	e2.LogWarn(logger)
+	e2.LogError(logger)
+
+	checkPanic := func(fn func()) (hasPanic bool) {
+		defer func() {
+			if x := recover(); x != nil {
+				hasPanic = true
+			}
+		}()
+		fn()
+		return hasPanic
+	}
+
+	// When
+	// Logging error to DPanic level
+	// Then
+	// No panic occur
+	require.False(t, checkPanic(func() { e2.LogDPanic(logger) }))
+
+	// When
+	// Logging error to Panic level
+	// Then
+	// Panic occurs
+	require.True(t, checkPanic(func() { e2.LogPanic(logger) }))
 }
