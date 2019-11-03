@@ -61,6 +61,25 @@ err = zerr.Wrap(err, zap.Int("fieldname1", intvalue1), zap.String("fieldname2", 
 
 A corresponding function `zerr.SugarNoStack` is available to wrap an error without a stack trace
 
+Logging HTTP requests
+---------------------
+
+The zerr package contains a wrapper Field for conveniently logging HTTP requests.
+
+```go
+zerr.Wrap(err, zerr.FieldRequest("request", r))
+```
+
+Adding fields to errors
+-----------------------
+
+It is possible to create a new error with additional fields with the method `WithField()`
+
+```go
+ze1 := zerr.Wrap(err)
+ze2 := ze.WithField(zap.Int("test", 1))
+```
+
 Using with zap
 --------------
 
@@ -85,8 +104,19 @@ func main() {
     
     err = broken("/this-file-does-not-exist")
     if err != nil {
+    	// Log error to logger, using the intial error as message
+    	zerr.Wrap(err).LogError(logger)
+    	// Or, if we want to add additional fields:
+    	zerr.Wrap(err, zap.Int("extra", 15)).LogError(logger)
+    	// Logging with different level
+    	zerr.Wrap(err, zap.Int("extra", 15)).LogInfo(logger)
+    	// Using chanining
+    	zerr.Wrap(err).WithRequest(r).LogError(logger)
+    	
+    	// Or, to call logger with a specific message:
         logger.Error("error calling broken", zerr.Fields(err)...)
     }
+    
 }
 ```
 
