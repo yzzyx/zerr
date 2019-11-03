@@ -69,37 +69,37 @@ func (e *Error) WithField(f zap.Field, additionalFields ...zap.Field) *Error {
 
 // LogDebug logs an Error with Debug level to a given zap logger
 func (e *Error) LogDebug(logger *zap.Logger) {
-	logger.Debug(e.Error(), e.fields...)
+	logger.Debug(e.Error(), e.Fields()...)
 }
 
 // LogInfo logs an Error with Info level to a given zap logger
 func (e *Error) LogInfo(logger *zap.Logger) {
-	logger.Info(e.Error(), e.fields...)
+	logger.Info(e.Error(), e.Fields()...)
 }
 
 // LogWarn logs an Error with Warn level to a given zap logger
 func (e *Error) LogWarn(logger *zap.Logger) {
-	logger.Warn(e.Error(), e.fields...)
+	logger.Warn(e.Error(), e.Fields()...)
 }
 
 // LogError logs an Error with Error level to a given zap logger
 func (e *Error) LogError(logger *zap.Logger) {
-	logger.Error(e.Error(), e.fields...)
+	logger.Error(e.Error(), e.Fields()...)
 }
 
 // LogDPanic logs an Error with DPanic level to a given zap logger
 func (e *Error) LogDPanic(logger *zap.Logger) {
-	logger.DPanic(e.Error(), e.fields...)
+	logger.DPanic(e.Error(), e.Fields()...)
 }
 
 // LogPanic logs an Error with Panic level to a given zap logger
 func (e *Error) LogPanic(logger *zap.Logger) {
-	logger.Panic(e.Error(), e.fields...)
+	logger.Panic(e.Error(), e.Fields()...)
 }
 
 // LogFatal logs an Error with Fatal level to a given zap logger
 func (e *Error) LogFatal(logger *zap.Logger) {
-	logger.Fatal(e.Error(), e.fields...)
+	logger.Fatal(e.Error(), e.Fields()...)
 }
 
 // Wrap adds zap fields to an error

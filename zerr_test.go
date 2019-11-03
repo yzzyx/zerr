@@ -2,6 +2,7 @@ package zerr
 
 import (
 	"errors"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -159,6 +160,12 @@ func TestAddFields(t *testing.T) {
 	require.IsType(t, &Error{}, e2)
 	require.NotEqual(t, e, e2)
 	require.Equal(t, e2.err, e)
+
+	// When
+	// We add a request field
+	re := e.WithRequest(httptest.NewRequest("POST", "http://www.google.com", nil))
+	require.Len(t, re.fields, 1)
+	require.Equal(t, "request", re.fields[0].Key)
 
 	// When
 	// logging errors in level Debug - Error
