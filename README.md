@@ -19,12 +19,17 @@ Wrapping errors
 To wrap an error with additional field:
 ```go
 // Add int field to error
+err = zerr.Wrap(err).WithInt("int-field", 15)
+// or, using zap directly
 err = zerr.Wrap(err, zap.Int("int-field", 15))
 ```
 
 You can add any number of fields the the error:
 ```go
 // Add multiple fields to error
+err = zerr.Wrap(err).WithInt("int-field", 15).WithString("query", query).WithAny("obj", obj)
+
+// or, using zap directly
 err = zerr.Wrap(err, zap.Int("int-field", 15), zap.String("query", query), zap.Any("obj", obj))
 ```
 
@@ -38,6 +43,8 @@ err = zerr.WrapNoStack(err)
 
 // WrapNoStack can also take extra fields, just like Wrap()
 err = zerr.WrapNoStack(err, zap.Int("int-field", 15), zap.String("query", query))
+// or be chained
+err = zerr.WrapNoStack(err).WithInt("int-field", 15).WithString("query", query)
 ```
 
 Note that `Wrap` will not add additional stacktraces if one was already included in the error.
@@ -56,7 +63,7 @@ of alternating string keynames and values to be passed as arguments.
 err := zerr.Sugar(err, "fieldname1", intvalue1, "fieldname2", stringvalue2)
 
 // which is equal to:
-err = zerr.Wrap(err, zap.Int("fieldname1", intvalue1), zap.String("fieldname2", stringvalue2))
+err = zerr.Wrap(err).WithInt("fieldname1", intvalue1).WithString("fieldname2", stringvalue2)
 ```
 
 A corresponding function `zerr.SugarNoStack` is available to wrap an error without a stack trace
@@ -67,13 +74,14 @@ Logging HTTP requests
 The zerr package contains a wrapper Field for conveniently logging HTTP requests.
 
 ```go
-zerr.Wrap(err, zerr.FieldRequest("request", r))
+zerr.Wrap(err).WithRequest("request", r))
 ```
 
 Adding fields to errors
 -----------------------
 
-It is possible to create a new error with additional fields with the method `WithField()`
+It is possible to create a new error with additional fields with the methods `WithInt()`, `WithString()`, `WithAny()` etc.
+Using the `WithField()` method, a zap Field can be wrapped directly.
 
 ```go
 ze1 := zerr.Wrap(err)
@@ -107,10 +115,10 @@ func main() {
     	// Log error to logger, using the intial error as message
     	zerr.Wrap(err).LogError(logger)
     	// Or, if we want to add additional fields:
-    	zerr.Wrap(err, zap.Int("extra", 15)).LogError(logger)
+    	zerr.Wrap(err).WithInt("extra", 15)).LogError(logger)
     	// Logging with different level
-    	zerr.Wrap(err, zap.Int("extra", 15)).LogInfo(logger)
-    	// Using chanining
+    	zerr.Wrap(err).WithInt("extra", 15)).LogInfo(logger)
+        // Adding HTTP request info
     	zerr.Wrap(err).WithRequest(r).LogError(logger)
     	
     	// Or, to call logger with a specific message:

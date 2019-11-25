@@ -3,7 +3,6 @@ package zerr
 import (
 	"errors"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 // Error is the type used to wrap other errors with additional fields
@@ -46,17 +45,8 @@ func (e *Error) Cause() error {
 	return e.err
 }
 
-// WithRequest adds information about a http request to the given error.
-// This is a convenience function that performs the same task as calling
-//  err.WithField(zerr.FieldRequest("request", r))
-// or
-//  WrapNoStack(err, zerr.FieldRequest("request", r))
-func (e *Error) WithRequest(r *http.Request) *Error {
-	return e.WithField(FieldRequest("request", r))
-}
-
 // WithField creates a new Error instance, with one or more fields added.
-// Note that this is equivalient to calling WrapNoStack(err, f)
+// Note that this is equivalent to calling WrapNoStack(err, f)
 func (e *Error) WithField(f zap.Field, additionalFields ...zap.Field) *Error {
 	newErr := &Error{
 		err:      e,
