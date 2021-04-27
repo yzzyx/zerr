@@ -94,6 +94,13 @@ func (e *Error) LogFatal(logger *zap.Logger) {
 
 // Wrap adds zap fields to an error
 func Wrap(err error, fields ...zap.Field) *Error {
+	return wrapWithStack(1, err, fields...)
+}
+
+// wrapWithStack wraps the error and attaches a stacktrace, skipping the first 'lvl' levels.
+// This function allows us to remove any 'zerr' calls from the stacktraces, and instead
+// list the stacktrace of the original caller
+func wrapWithStack(lvl int, err error, fields ...zap.Field) *Error {
 	// If we're not adding any fields, and the supplied error is already of the correct type,
 	// return it directly
 	if e, ok := err.(*Error); ok && len(fields) == 0 {
@@ -109,7 +116,7 @@ func Wrap(err error, fields ...zap.Field) *Error {
 	}
 
 	if !hasStack {
-		fields = append(fields, zap.Stack("stacktrace"))
+		fields = append(fields, zap.StackSkip("stacktrace", lvl+1))
 	}
 
 	return &Error{
@@ -133,7 +140,7 @@ func WrapNoStack(err error, fields ...zap.Field) *Error {
 // errors.Wraps(err, "key-1", 12, "key-2", "some string", "key-3", value)
 func Sugar(err error, args ...interface{}) *Error {
 	fields := sugarFields(args...)
-	return Wrap(err, fields...)
+	return wrapWithStack(1, err, fields...)
 }
 
 // SugarNoStack is exactly like the 'Sugar' function but without an additional stacktrace
