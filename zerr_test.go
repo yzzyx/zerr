@@ -199,3 +199,26 @@ func TestAddFields(t *testing.T) {
 	// Panic occurs
 	require.True(t, checkPanic(func() { e2.LogPanic(logger) }))
 }
+
+func TestNil(t *testing.T) {
+	var e *Error
+	var logger *zap.Logger
+
+	// When e is nil and logger is nil
+	// Then nothing happens
+	e.LogError(logger)
+
+	// When e contains a nil error
+	// Then e.Error() returns an empty string
+	e = Wrap(nil, zap.String("test", "test"))
+	require.Equal(t, "", e.Error())
+
+	// When e contains a nil error, and logger is nil
+	// Then e.LogError() prints to stderr
+	e.LogError(logger)
+
+	// When e contains a nil error, and logger is not nil
+	// Then e.LogError() logs the error
+	logger = zap.NewNop()
+	e.LogError(logger)
+}

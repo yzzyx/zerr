@@ -2,7 +2,9 @@ package zerr
 
 import (
 	"errors"
+	"fmt"
 	"go.uber.org/zap"
+	"os"
 )
 
 // Error is the type used to wrap other errors with additional fields
@@ -14,6 +16,9 @@ type Error struct {
 
 // Error makes us implement the standard error interface
 func (e *Error) Error() string {
+	if e == nil || e.err == nil {
+		return ""
+	}
 	return e.err.Error()
 }
 
@@ -59,36 +64,89 @@ func (e *Error) WithField(f zap.Field, additionalFields ...zap.Field) *Error {
 
 // LogDebug logs an Error with Debug level to a given zap logger
 func (e *Error) LogDebug(logger *zap.Logger) {
+	if e == nil {
+		return
+	}
+	if logger == nil {
+		fmt.Fprintf(os.Stderr, "[debug] %+v %+v\n", e.Error(), e.Fields())
+		return
+	}
+
 	logger.Debug(e.Error(), e.Fields()...)
 }
 
 // LogInfo logs an Error with Info level to a given zap logger
 func (e *Error) LogInfo(logger *zap.Logger) {
+	if e == nil {
+		return
+	}
+	if logger == nil {
+		fmt.Fprintf(os.Stderr, "[info] %+v %+v\n", e.Error(), e.Fields())
+		return
+	}
 	logger.Info(e.Error(), e.Fields()...)
 }
 
 // LogWarn logs an Error with Warn level to a given zap logger
 func (e *Error) LogWarn(logger *zap.Logger) {
+	if e == nil {
+		return
+	}
+	if logger == nil {
+		fmt.Fprintf(os.Stderr, "[warn] %+v %+v\n", e.Error(), e.Fields())
+		return
+	}
 	logger.Warn(e.Error(), e.Fields()...)
 }
 
 // LogError logs an Error with Error level to a given zap logger
 func (e *Error) LogError(logger *zap.Logger) {
+	if e == nil {
+		return
+	}
+	if logger == nil {
+		fmt.Fprintf(os.Stderr, "[error] %+v %+v\n", e.Error(), e.Fields())
+		return
+	}
 	logger.Error(e.Error(), e.Fields()...)
 }
 
 // LogDPanic logs an Error with DPanic level to a given zap logger
 func (e *Error) LogDPanic(logger *zap.Logger) {
+	if e == nil {
+		return
+	}
+	if logger == nil {
+		fmt.Fprintf(os.Stderr, "[dpanic] %+v %+v\n", e.Error(), e.Fields())
+		return
+	}
 	logger.DPanic(e.Error(), e.Fields()...)
 }
 
 // LogPanic logs an Error with Panic level to a given zap logger
 func (e *Error) LogPanic(logger *zap.Logger) {
+	if e == nil {
+		return
+	}
+	if logger == nil {
+		panic(e)
+		return
+	}
+
 	logger.Panic(e.Error(), e.Fields()...)
 }
 
 // LogFatal logs an Error with Fatal level to a given zap logger
 func (e *Error) LogFatal(logger *zap.Logger) {
+	if e == nil {
+		return
+	}
+	if logger == nil {
+		fmt.Fprintf(os.Stderr, "[fatal] %+v %+v\n", e.Error(), e.Fields())
+		os.Exit(1)
+		return
+	}
+
 	logger.Fatal(e.Error(), e.Fields()...)
 }
 
