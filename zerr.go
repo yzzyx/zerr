@@ -131,7 +131,6 @@ func (e *Error) LogPanic(logger *zap.Logger) {
 	}
 	if logger == nil {
 		panic(e)
-		return
 	}
 
 	logger.Panic(e.Error(), e.Fields()...)
