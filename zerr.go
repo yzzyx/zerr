@@ -3,8 +3,9 @@ package zerr
 import (
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
 	"os"
+
+	"go.uber.org/zap"
 )
 
 // Error is the type used to wrap other errors with additional fields
