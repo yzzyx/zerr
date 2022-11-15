@@ -10,7 +10,7 @@ Installation
 To install, run:
 
 ```bash
-go get gitlab.com/yzzyx/zerr
+go get github.com/yzzyx/zerr
 ```
 
 Wrapping errors
